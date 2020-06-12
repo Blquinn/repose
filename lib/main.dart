@@ -1,3 +1,4 @@
+import 'package:flutter/services.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:repose/bloc/active_requests_bloc.dart';
 import 'package:repose/request_container.dart';
@@ -9,22 +10,66 @@ import 'package:repose/split_view.dart';
 import 'header_bar.dart';
 
 void main() {
-  runApp(MyApp());
+  runApp(Repose());
 }
 
-class MyApp extends StatelessWidget {
+class Repose extends StatelessWidget {
   // This widget is the root of your application.
   @override
+  Widget build(BuildContext context) => MainWidget();
+}
+
+class MainWidget extends StatefulWidget {
+  @override
+  _MainWidgetState createState() {
+    return _MainWidgetState();
+  }
+}
+
+class _MainWidgetState extends State<MainWidget> {
+  // TODO: persist scale factor
+  double _scaleFactor = 2.0;
+
+  // Captures all key presses in the app.
+  void onKeyPressed(RawKeyEvent key) {
+    if (!key.isControlPressed) { return; }
+    if (!(key is RawKeyDownEvent)) { return; }
+
+    if (key.logicalKey == LogicalKeyboardKey.equal){
+      debugPrint('Scaling app up.');
+      setState(() {
+        _scaleFactor += 0.1;
+      });
+    }
+
+    if (key.logicalKey == LogicalKeyboardKey.minus){
+      debugPrint('Scaling app down.');
+      setState(() {
+        _scaleFactor -= 0.1;
+      });
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'Repose',
-      theme: ThemeData(
-        primarySwatch: Colors.blue,
-        visualDensity: VisualDensity.adaptivePlatformDensity,
+    var focusNode = FocusNode(debugLabel: 'KeyboardListener');
+    return RawKeyboardListener(
+      focusNode: focusNode,
+      onKey: onKeyPressed,
+      child: FakeDevicePixelRatio(
+        child: MaterialApp(
+          title: 'Repose',
+          theme: ThemeData(
+            primarySwatch: Colors.blue,
+            visualDensity: VisualDensity.adaptivePlatformDensity,
+          ),
+          home: HomePage(title: 'Repose'),
+        ),
+        fakeDevicePixelRatio: _scaleFactor, 
       ),
-      home: HomePage(title: 'Repose'),
     );
   }
+
 }
 
 class HomePage extends StatefulWidget {
@@ -55,6 +100,28 @@ class _HomePageState extends State<HomePage> {
           )
         ]),
       ),
+    );
+  }
+}
+
+
+class FakeDevicePixelRatio extends StatelessWidget {
+  final num fakeDevicePixelRatio;
+  final Widget child;
+
+  FakeDevicePixelRatio({this.fakeDevicePixelRatio, this.child}) : assert(fakeDevicePixelRatio != null);
+
+  @override
+  Widget build(BuildContext context) {
+    final ratio = fakeDevicePixelRatio / WidgetsBinding.instance.window.devicePixelRatio;
+    
+    return FractionallySizedBox(
+      widthFactor: 1/ratio,
+      heightFactor: 1/ratio,
+      child: Transform.scale(
+        scale: ratio,
+        child: child
+      )
     );
   }
 }
