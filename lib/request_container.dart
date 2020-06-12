@@ -14,71 +14,88 @@ class RequestContainer extends StatefulWidget {
 }
 
 class _RequestContainerState extends State<RequestContainer> {
-  ActiveRequestsListBloc _bloc = ActiveRequestsListBloc();
-
-  final responseTextScrollController = ScrollController();
+  final _responseTextScrollController = ScrollController();
+  final _urlTextController = TextEditingController();
+  final _nameTextController = TextEditingController();
 
   @override
   Widget build(BuildContext context) {
-    var bloc = BlocProvider.of<ActiveRequestsListBloc>(context);
-    return BlocConsumer<ActiveRequestsListBloc, ActiveRequestsListState>(
-      bloc: bloc,
-      listener: (context, state) {},
-      builder: (context, state) => Padding(
-        padding: const EdgeInsets.all(8.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            ActiveRequestsTabs(),
-            ..._buildRequestEditor(bloc, state),
-          ],
-        ),
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          ActiveRequestsTabs(),
+          _buildRequestEditor(context),
+        ],
       ),
     );
   }
 
-  List<Widget> _buildRequestEditor(ActiveRequestsListBloc bloc, ActiveRequestsListState state) {
-    return bloc.state.activeRequest == null
-        ? [Expanded(child: Text('No request selected'))]
-        : [
-            Row(
-              children: [
-                DropdownButton(
-                  value: bloc.state.activeRequest.method,
-                  items: HttpMethod.values
-                      .map((e) => DropdownMenuItem(
-                            value: e,
-                            child: Text(e.toString().split('.').last),
-                          ))
-                      .toList(),
-                  onChanged: (val) => _bloc.add(MethodChangedEvent(val)),
-                ),
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.only(left: 8.0, right: 8.0),
-                    child: TextField(
-                      onChanged: (val) => _bloc.add(UrlChangedEvent(val)),
+  Widget _buildRequestEditor(BuildContext context) {
+    var bloc = context.bloc<ActiveRequestsListBloc>();
+    return BlocConsumer<ActiveRequestsListBloc, ActiveRequestsListState>(
+      bloc: bloc,
+      // Only trigger listener when active request changes.
+      listenWhen: (oldState, newState) => oldState.activeRequest.id != newState.activeRequest.id,
+      listener: (context, state) {
+        _urlTextController.text = state.activeRequest.url;
+        _nameTextController.text = state.activeRequest.name;
+      },
+      builder: (context, state) => Expanded(
+        child: state.activeRequest == null
+            ? Text('No request selected')
+            : Column(
+                children: [
+                  TextField(
+                    decoration: InputDecoration(hintText: 'Request Name'),
+                    controller: _nameTextController,
+                    onChanged: (val) => bloc.add(NameChangedEvent(val)),
+                    onSubmitted: (val) => bloc.add(RequestNameSubmittedEvent(state.activeRequest)),
+                  ),
+                  Row(
+                    children: [
+                      DropdownButton(
+                        value: state.activeRequest.method,
+                        items: HttpMethod.values
+                            .map((e) => DropdownMenuItem(
+                                  value: e,
+                                  child: Text(e.toString().split('.').last),
+                                ))
+                            .toList(),
+                        onChanged: (val) => bloc.add(MethodChangedEvent(val)),
+                      ),
+                      Expanded(
+                        child: Padding(
+                          padding: const EdgeInsets.only(left: 8.0, right: 8.0),
+                          child: TextField(
+                            decoration: InputDecoration(hintText: 'Url'),
+                            controller: _urlTextController,
+                            onChanged: (val) => bloc.add(UrlChangedEvent(val)),
+                          ),
+                        ),
+                      ),
+                      FlatButton(
+                        child: Text('Send Request'),
+                        onPressed: () => bloc.add(InitiateRequestEvent()),
+                      ),
+                    ],
+                  ),
+                  Expanded(
+                    child: CupertinoScrollbar(
+                      controller: _responseTextScrollController,
+                      child: SingleChildScrollView(
+                        controller: _responseTextScrollController,
+                        child: Text(state.activeRequest.response == ''
+                            ? 'No Response'
+                            : state.activeRequest.response),
+                      ),
                     ),
                   ),
-                ),
-                FlatButton(
-                  child: Text('Send Request'),
-                  onPressed: () => _bloc.add(InitiateRequestEvent()),
-                ),
-              ],
-            ),
-            Expanded(
-              child: CupertinoScrollbar(
-                controller: responseTextScrollController,
-                child: SingleChildScrollView(
-                  controller: responseTextScrollController,
-                  child: Text(bloc.state.activeRequest.response == ''
-                      ? 'No Response'
-                      : bloc.state.activeRequest.response),
-                ),
+                ],
               ),
-            ),
-          ];
+      ),
+    );
   }
 }
 
@@ -89,39 +106,43 @@ class ActiveRequestsTabs extends StatefulWidget {
   }
 }
 
-class _ActiveRequestsTabsState extends State<ActiveRequestsTabs>
-    with TickerProviderStateMixin {
-  TabController _activeRequestsTabController;
-
+class _ActiveRequestsTabsState extends State<ActiveRequestsTabs> {
   Widget build(BuildContext context) {
     var bloc = BlocProvider.of<ActiveRequestsListBloc>(context);
     var theme = Theme.of(context);
-    return BlocConsumer<ActiveRequestsListBloc, ActiveRequestsListState>(
-      bloc: bloc,
-      listener: (context, state) {},
-      builder: (context, state) {
-        return DynamicTabBar(
-          itemCount: state.requests.length,
-          tabBuilder: (context, idx) {
-            var request = state.requests[idx];
-            return Row(
-              children: [
-                Text(request.url,
-                    style: theme.textTheme.subtitle2,
-                    overflow: TextOverflow.clip),
-                IconButton(
-                  splashRadius: 16,
-                  color: Colors.black54,
-                  icon: Icon(Icons.close),
-                  onPressed: () {
-                    debugPrint('Close tab button pressed.');
-                  },
+    return BlocBuilder<ActiveRequestsListBloc, ActiveRequestsListState>(
+        bloc: bloc,
+        builder: (context, state) {
+          return DynamicTabBar(
+            itemCount: state.requests.length,
+            onPositionChange: (idx) {
+              bloc.add(RequestSelectedEvent(state.requests[idx]));
+            },
+            tabBuilder: (context, idx) {
+              var request = state.requests[idx];
+              return SizedBox.fromSize(
+                size: Size(150, 40),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                          '${request.method.name} ${request.name.isEmpty ? request.url : request.name}',
+                          style: theme.textTheme.subtitle2,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                    IconButton(
+                      splashRadius: 16,
+                      color: Colors.black54,
+                      icon: Icon(Icons.close),
+                      onPressed: () {
+                        debugPrint('Close tab button pressed.');
+                      },
+                    ),
+                  ],
                 ),
-              ],
-            );
-          },
-        );
-      }
-    );
+              );
+            },
+          );
+        });
   }
 }

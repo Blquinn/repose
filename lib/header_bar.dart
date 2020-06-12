@@ -15,7 +15,7 @@ class HeaderBar extends StatelessWidget {
       width: double.infinity,
       height: 50,
       child: Container(
-        color: Color.fromRGBO(30, 30, 30, 1),
+        color: Color.fromRGBO(40, 40, 40, 1),
         child: Row(
           children: [
             Row(
@@ -23,7 +23,7 @@ class HeaderBar extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(left: 8.0),
                   child: FlatButton(
-                    child: Text("New"),
+                    child: Text("New", style: TextStyle(color: Colors.white)),
                     color: Color.fromRGBO(242, 107, 48, 1),
                     onPressed: () {
                       debugPrint('New request button pressed.');

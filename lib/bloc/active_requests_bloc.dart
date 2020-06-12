@@ -40,6 +40,15 @@ class UrlChangedEvent extends ActiveRequestListEvent {
   List<Object> get props => [newUrl];
 }
 
+class NameChangedEvent extends ActiveRequestListEvent {
+  String newName;
+
+  NameChangedEvent(this.newName);
+
+  @override
+  List<Object> get props => [newName];
+}
+
 class MethodChangedEvent extends ActiveRequestListEvent {
   HttpMethod newMethod;
 
@@ -65,18 +74,39 @@ class RequestSelectedEvent extends ActiveRequestListEvent {
   RequestSelectedEvent(this.newRequest);
 
   @override
-  List<Object> get props => [];
+  List<Object> get props => [newRequest];
+}
+
+class RemoveActiveRequestEvent extends ActiveRequestListEvent {
+  RequestModel newRequest;
+
+  RemoveActiveRequestEvent(this.newRequest);
+
+  @override
+  List<Object> get props => [newRequest];
+}
+
+class RequestNameSubmittedEvent extends ActiveRequestListEvent {
+  RequestModel request;
+  RequestNameSubmittedEvent(this.request);
+  @override
+  List<Object> get props => [request];
 }
 
 class ActiveRequestsListBloc extends Bloc<ActiveRequestListEvent, ActiveRequestsListState> {
   @override
-  ActiveRequestsListState get initialState => ActiveRequestsListState(
+  ActiveRequestsListState get initialState {
+    var r1 = RequestModel(method: HttpMethod.GET, url: 'https://google.com', response: '');
+
+    return ActiveRequestsListState(
       requests: [
-        RequestModel(method: HttpMethod.GET, url: 'https://google.com', response: ''),
-        RequestModel(method: HttpMethod.GET, url: 'https://yahoo.com', response: ''),
+        r1,
+        RequestModel(
+            method: HttpMethod.GET, url: 'https://yahoo.com', response: ''),
       ],
-      activeRequest: null,
-  );
+      activeRequest: r1,
+    );
+  }
 
   @override
   Stream<ActiveRequestsListState> mapEventToState(event) async* {
@@ -84,13 +114,29 @@ class ActiveRequestsListBloc extends Bloc<ActiveRequestListEvent, ActiveRequests
       yield state.copyWith(activeRequest: state.activeRequest.copyWith(url: event.newUrl));
     } else if (event is MethodChangedEvent) {
       yield state.copyWith(activeRequest: state.activeRequest.copyWith(method: event.newMethod));
+    } else if (event is NameChangedEvent) {
+      yield state.copyWith(activeRequest: state.activeRequest.copyWith(name: event.newName));
     } else if (event is InitiateRequestEvent) {
       final res = await _doRequest();
       yield state.copyWith(activeRequest: state.activeRequest.copyWith(response: res));
     } else if (event is AddNewRequestEvent) {
       yield state.copyWith(requests: [...state.requests, RequestModel(url: 'http://foo.com')]);
     } else if (event is RequestSelectedEvent) {
-      yield state.copyWith(activeRequest: event.newRequest);
+      var currentReq = state.activeRequest;
+      yield state.copyWith(
+        requests: state.requests.map((r) => r.id == currentReq.id ? currentReq.copyWith() : r).toList(),
+        activeRequest: event.newRequest,
+      );
+    } else if (event is RemoveActiveRequestEvent) {
+      var requests = state.requests;
+      requests.removeWhere((r) => r.id == event.newRequest.id);
+      yield state.copyWith(
+        requests: requests,
+      );
+    } else if (event is RequestNameSubmittedEvent) {
+      yield state.copyWith(
+        requests: state.requests.map((r) => r.id == event.request.id ? event.request.copyWith() : r).toList()
+      );
     } else {
       debugPrint('Got unhandled event $event');
     }
