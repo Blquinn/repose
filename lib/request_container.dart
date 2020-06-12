@@ -2,17 +2,18 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:repose/bloc/active_requests_bloc.dart';
+import 'package:repose/widgets/dynamic_tab_view.dart';
 
 import 'bloc/models.dart';
 
 class RequestContainer extends StatefulWidget {
   @override
   State<StatefulWidget> createState() {
-    return RequestContainerState();
+    return _RequestContainerState();
   }
 }
 
-class RequestContainerState extends State<RequestContainer> {
+class _RequestContainerState extends State<RequestContainer> {
   ActiveRequestsListBloc _bloc = ActiveRequestsListBloc();
 
   final responseTextScrollController = ScrollController();
@@ -20,23 +21,23 @@ class RequestContainerState extends State<RequestContainer> {
   @override
   Widget build(BuildContext context) {
     var bloc = BlocProvider.of<ActiveRequestsListBloc>(context);
-
-    return BlocProvider.value(
-      value: bloc,
-      child: Padding(
+    return BlocConsumer<ActiveRequestsListBloc, ActiveRequestsListState>(
+      bloc: bloc,
+      listener: (context, state) {},
+      builder: (context, state) => Padding(
         padding: const EdgeInsets.all(8.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ActiveRequestsTabs(numTabs: bloc.state.requests.length),
-            ..._buildRequestEditor(bloc),
+            ActiveRequestsTabs(),
+            ..._buildRequestEditor(bloc, state),
           ],
         ),
       ),
     );
   }
 
-  List<Widget> _buildRequestEditor(ActiveRequestsListBloc bloc) {
+  List<Widget> _buildRequestEditor(ActiveRequestsListBloc bloc, ActiveRequestsListState state) {
     return bloc.state.activeRequest == null
         ? [Expanded(child: Text('No request selected'))]
         : [
@@ -82,53 +83,45 @@ class RequestContainerState extends State<RequestContainer> {
 }
 
 class ActiveRequestsTabs extends StatefulWidget {
-  int numTabs;
-
-  ActiveRequestsTabs({
-    @required this.numTabs,
-  });
-
   @override
   State<StatefulWidget> createState() {
-    return ActiveRequestsTabsState(numTabs: this.numTabs);
+    return _ActiveRequestsTabsState();
   }
 }
 
-class ActiveRequestsTabsState extends State<ActiveRequestsTabs>
+class _ActiveRequestsTabsState extends State<ActiveRequestsTabs>
     with TickerProviderStateMixin {
-  int numTabs;
   TabController _activeRequestsTabController;
-
-  ActiveRequestsTabsState({
-    @required this.numTabs,
-  });
-
-  @override
-  void initState() {
-    super.initState();
-    _activeRequestsTabController =
-        TabController(length: this.numTabs, vsync: this);
-  }
 
   Widget build(BuildContext context) {
     var bloc = BlocProvider.of<ActiveRequestsListBloc>(context);
     var theme = Theme.of(context);
-    return BlocProvider.value(
-      value: bloc,
-      child: TabBar(
-        isScrollable: true,
-        controller: _activeRequestsTabController,
-        tabs: bloc.state.requests.map((r) =>
-            Row(
+    return BlocConsumer<ActiveRequestsListBloc, ActiveRequestsListState>(
+      bloc: bloc,
+      listener: (context, state) {},
+      builder: (context, state) {
+        return DynamicTabBar(
+          itemCount: state.requests.length,
+          tabBuilder: (context, idx) {
+            var request = state.requests[idx];
+            return Row(
               children: [
-                Text(r.url, style: theme.textTheme.subtitle2, overflow: TextOverflow.clip),
+                Text(request.url,
+                    style: theme.textTheme.subtitle2,
+                    overflow: TextOverflow.clip),
                 IconButton(
+                  splashRadius: 16,
+                  color: Colors.black54,
                   icon: Icon(Icons.close),
+                  onPressed: () {
+                    debugPrint('Close tab button pressed.');
+                  },
                 ),
               ],
-            )
-        ).toList(),
-      ),
+            );
+          },
+        );
+      }
     );
   }
 }

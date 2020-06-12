@@ -27,7 +27,7 @@ class HeaderBar extends StatelessWidget {
                     color: Color.fromRGBO(242, 107, 48, 1),
                     onPressed: () {
                       debugPrint('New request button pressed.');
-//                      requestListBloc.add(N)
+                      requestListBloc.add(AddNewRequestEvent());
                     },
                   ),
                 ),

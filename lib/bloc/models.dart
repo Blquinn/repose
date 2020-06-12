@@ -6,25 +6,29 @@ enum HttpMethod {
 }
 
 @immutable
-class RequestModels extends Equatable {
+class RequestModel extends Equatable {
   final HttpMethod method;
   final String url;
+  final String name;
   final String response;
+//  final String responseContentType;
 
-  RequestModels({
-    @required this.method,
-    @required this.url,
-    @required this.response,
+  RequestModel({
+    this.method = HttpMethod.GET,
+    this.url = '',
+    this.name = 'New Request',
+    this.response = '',
   });
 
-  RequestModels copyWith({HttpMethod method, String url, String response}) {
-    return RequestModels(
+  RequestModel copyWith({HttpMethod method, String name, String url, String response}) {
+    return RequestModel(
       method: method ?? this.method,
       url: url ?? this.url,
+      name: name ?? this.name,
       response: response ?? this.response,
     );
   }
 
   @override
-  List<Object> get props => [method, url, response];
+  List<Object> get props => [method, url, name, response];
 }

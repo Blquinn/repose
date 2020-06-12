@@ -5,7 +5,7 @@ import 'package:repose/bloc/models.dart';
 
 @immutable
 class CollectionTreeState extends Equatable {
-  final List<RequestModels> requests;
+  final List<RequestModel> requests;
 
   CollectionTreeState({
     @required this.requests,

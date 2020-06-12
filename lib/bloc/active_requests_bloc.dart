@@ -8,17 +8,17 @@ import 'package:http/http.dart' as http;
 import 'package:xml/xml.dart' as xml;
 
 @immutable
-class ActiveRequestListState extends Equatable {
-  final List<RequestModels> requests;
-  final RequestModels activeRequest;
+class ActiveRequestsListState extends Equatable {
+  final List<RequestModel> requests;
+  final RequestModel activeRequest;
 
-  ActiveRequestListState({
+  ActiveRequestsListState({
     @required this.requests,
     @required this.activeRequest,
   });
 
-  ActiveRequestListState copyWith({List<RequestModels> requests, RequestModels activeRequest}) {
-    return ActiveRequestListState(
+  ActiveRequestsListState copyWith({List<RequestModel> requests, RequestModel activeRequest}) {
+    return ActiveRequestsListState(
       requests: requests ?? this.requests,
       activeRequest: activeRequest ?? this.activeRequest,
     );
@@ -54,18 +54,32 @@ class InitiateRequestEvent extends ActiveRequestListEvent {
   List<Object> get props => [];
 }
 
-class ActiveRequestsListBloc extends Bloc<ActiveRequestListEvent, ActiveRequestListState> {
+class AddNewRequestEvent extends ActiveRequestListEvent {
   @override
-  ActiveRequestListState get initialState => ActiveRequestListState(
+  List<Object> get props => [];
+}
+
+class RequestSelectedEvent extends ActiveRequestListEvent {
+  RequestModel newRequest;
+
+  RequestSelectedEvent(this.newRequest);
+
+  @override
+  List<Object> get props => [];
+}
+
+class ActiveRequestsListBloc extends Bloc<ActiveRequestListEvent, ActiveRequestsListState> {
+  @override
+  ActiveRequestsListState get initialState => ActiveRequestsListState(
       requests: [
-        RequestModels(method: HttpMethod.GET, url: 'https://google.com', response: ''),
-        RequestModels(method: HttpMethod.GET, url: 'https://yahoo.com', response: ''),
+        RequestModel(method: HttpMethod.GET, url: 'https://google.com', response: ''),
+        RequestModel(method: HttpMethod.GET, url: 'https://yahoo.com', response: ''),
       ],
       activeRequest: null,
   );
 
   @override
-  Stream<ActiveRequestListState> mapEventToState(event) async* {
+  Stream<ActiveRequestsListState> mapEventToState(event) async* {
     if (event is UrlChangedEvent) {
       yield state.copyWith(activeRequest: state.activeRequest.copyWith(url: event.newUrl));
     } else if (event is MethodChangedEvent) {
@@ -73,8 +87,12 @@ class ActiveRequestsListBloc extends Bloc<ActiveRequestListEvent, ActiveRequestL
     } else if (event is InitiateRequestEvent) {
       final res = await _doRequest();
       yield state.copyWith(activeRequest: state.activeRequest.copyWith(response: res));
+    } else if (event is AddNewRequestEvent) {
+      yield state.copyWith(requests: [...state.requests, RequestModel(url: 'http://foo.com')]);
+    } else if (event is RequestSelectedEvent) {
+      yield state.copyWith(activeRequest: event.newRequest);
     } else {
-      debugPrint('Got unhandled event.');
+      debugPrint('Got unhandled event $event');
     }
   }
 
