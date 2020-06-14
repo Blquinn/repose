@@ -96,7 +96,11 @@ class RequestNameSubmittedEvent extends ActiveRequestListEvent {
 class ActiveRequestsListBloc extends Bloc<ActiveRequestListEvent, ActiveRequestsListState> {
   @override
   ActiveRequestsListState get initialState {
-    var r1 = RequestModel(method: HttpMethod.GET, url: 'https://google.com', response: '');
+    var r1 = RequestModel(
+      method: HttpMethod.POST,
+      url: 'https://google.com',
+      response: '',
+    );
 
     return ActiveRequestsListState(
       requests: [

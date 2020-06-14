@@ -4,7 +4,7 @@ import 'package:repose/request_container.dart';
 import 'package:repose/request_menu.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:repose/split_view.dart';
+import 'package:repose/widgets/split_view.dart';
 
 import 'header_bar.dart';
 

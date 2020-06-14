@@ -13,12 +13,36 @@ extension HttpMethodNames on HttpMethod {
 }
 
 @immutable
+class KeyValueModel extends Equatable {
+  final String key;
+  final String value;
+  final String description;
+
+  KeyValueModel(this.key, this.value, this.description);
+
+  KeyValueModel copyWith({
+    String key,
+    String value,
+    String description,
+  }) => KeyValueModel(
+    key ?? this.key,
+    value ?? this.value,
+    description ?? this.description,
+  );
+
+  @override
+  List<Object> get props => [key, value, description];
+}
+
+@immutable
 class RequestModel extends Equatable {
   String id;
   final HttpMethod method;
   final String url;
   final String name;
   final String response;
+  List<KeyValueModel> params;
+  List<KeyValueModel> headers;
 
   RequestModel({
     this.id,
@@ -26,20 +50,32 @@ class RequestModel extends Equatable {
     this.url = '',
     this.name = 'New Request',
     this.response = '',
+    this.params,
+    this.headers,
   }) {
     id = id ?? uuid.v1();
+    params = params ?? [KeyValueModel('', '', '')];
+    headers = headers ?? [KeyValueModel('', '', '')];
   }
 
-  RequestModel copyWith({String id, HttpMethod method, String name, String url, String response}) {
-    return RequestModel(
-      id: id ?? this.id,
-      method: method ?? this.method,
-      url: url ?? this.url,
-      name: name ?? this.name,
-      response: response ?? this.response,
-    );
-  }
+  RequestModel copyWith({
+    String id,
+    HttpMethod method,
+    String name,
+    String url,
+    String response,
+    List<KeyValueModel> params,
+    List<KeyValueModel> headers,
+  }) => RequestModel(
+    id: id ?? this.id,
+    method: method ?? this.method,
+    url: url ?? this.url,
+    name: name ?? this.name,
+    response: response ?? this.response,
+    params: params ?? this.params,
+    headers: headers ?? this.headers,
+  );
 
   @override
-  List<Object> get props => [id, method, url, name, response];
+  List<Object> get props => [id, method, url, name, response, params, headers];
 }
