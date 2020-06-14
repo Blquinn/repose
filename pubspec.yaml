@@ -33,7 +33,7 @@ dependencies:
   flutter_bloc: ^4.0.0
   equatable: ^1.2.0
   uuid: ^2.0.4
-#  flutter_highlight: ^0.6.0
+  sticky_headers: ^0.1.8
   rich_code_editor: ^1.0.0
 
 dev_dependencies:
