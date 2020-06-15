@@ -93,6 +93,13 @@ class RequestNameSubmittedEvent extends ActiveRequestListEvent {
   List<Object> get props => [request];
 }
 
+class RequestClosedEvent extends ActiveRequestListEvent {
+  RequestModel request;
+  RequestClosedEvent(this.request);
+  @override
+  List<Object> get props => [request];
+}
+
 class ActiveRequestsListBloc extends Bloc<ActiveRequestListEvent, ActiveRequestsListState> {
   @override
   ActiveRequestsListState get initialState {
@@ -137,6 +144,10 @@ class ActiveRequestsListBloc extends Bloc<ActiveRequestListEvent, ActiveRequests
       yield state.copyWith(
         requests: state.requests.map((r) => r.id == event.request.id ? event.request.copyWith() : r).toList()
       );
+    } else if (event is RequestClosedEvent) {
+      var newRequests = state.requests.where((r) => r.id != event.request.id).toList();
+      if (newRequests.isEmpty) { newRequests.add(RequestModel()); }
+      yield state.copyWith(requests: newRequests);
     } else {
       debugPrint('Got unhandled event $event');
     }

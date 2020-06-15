@@ -69,7 +69,6 @@ class _MainWidgetState extends State<MainWidget> {
       ),
     );
   }
-
 }
 
 class HomePage extends StatefulWidget {

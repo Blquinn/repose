@@ -136,6 +136,7 @@ class _ActiveRequestsTabsState extends State<ActiveRequestsTabs> {
                       icon: Icon(Icons.close),
                       onPressed: () {
                         debugPrint('Close tab button pressed.');
+                        bloc.add(RequestClosedEvent(state.requests[idx]));
                       },
                     ),
                   ],
