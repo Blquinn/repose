@@ -5,7 +5,7 @@ import 'package:repose/request_container.dart';
 import 'package:repose/request_menu.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:repose/split_view.dart';
+import 'package:repose/widgets/split_view.dart';
 
 import 'header_bar.dart';
 
@@ -36,17 +36,17 @@ class _MainWidgetState extends State<MainWidget> {
     if (!(key is RawKeyDownEvent)) { return; }
 
     if (key.logicalKey == LogicalKeyboardKey.equal){
-      debugPrint('Scaling app up.');
       setState(() {
         _scaleFactor += 0.1;
       });
+      debugPrint('Scale factor scaled up to $_scaleFactor');
     }
 
     if (key.logicalKey == LogicalKeyboardKey.minus){
-      debugPrint('Scaling app down.');
       setState(() {
         _scaleFactor -= 0.1;
       });
+      debugPrint('Scale factor scaled down to $_scaleFactor');
     }
   }
 
@@ -65,7 +65,7 @@ class _MainWidgetState extends State<MainWidget> {
           ),
           home: HomePage(title: 'Repose'),
         ),
-        fakeDevicePixelRatio: _scaleFactor, 
+        fakeDevicePixelRatio: _scaleFactor,
       ),
     );
   }
@@ -113,7 +113,7 @@ class FakeDevicePixelRatio extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final ratio = fakeDevicePixelRatio / WidgetsBinding.instance.window.devicePixelRatio;
-    
+
     return FractionallySizedBox(
       widthFactor: 1/ratio,
       heightFactor: 1/ratio,
