@@ -33,8 +33,6 @@ class HeaderBar extends StatelessWidget {
                 ),
               ],
             ),
-            Row(),
-            Row(),
           ],
         ),
       ),

@@ -2,101 +2,158 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:repose/bloc/active_requests_bloc.dart';
+import 'package:repose/bloc/request_bloc.dart' as rb;
 import 'package:repose/widgets/dynamic_tab_view.dart';
 import 'package:repose/widgets/key_value_table.dart';
 import 'package:sticky_headers/sticky_headers.dart';
 
 import 'bloc/models.dart';
 
-class RequestContainer extends StatefulWidget {
-  @override
-  State<StatefulWidget> createState() {
-    return _RequestContainerState();
-  }
-}
-
-class _RequestContainerState extends State<RequestContainer> with TickerProviderStateMixin {
-  final _responseTextScrollController = ScrollController();
-  final _urlTextController = TextEditingController();
-  final _nameTextController = TextEditingController();
-  final _requestEditingController = TextEditingController();
-  final _requestEditingScrollController = ScrollController();
-
+class RequestContainer extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(8.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
+      child: BlocBuilder<ActiveRequestsListBloc, ActiveRequestsListState>(
+        builder: (context, state) => DynamicTabView(
+          itemCount: state.requests.length,
+          tabBuilder: (context, idx) => buildTabBar(context, state, idx),
+          pageBuilder: (context, idx) => RequestWidget(
+            request: state.requests[idx],
+            child: RequestEditorContainer(),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget buildTabBar(BuildContext context, ActiveRequestsListState state, int idx) {
+    final theme = Theme.of(context);
+    final request = state.requests[idx];
+    return SizedBox.fromSize(
+      size: Size(150, 40),
+      child: Row(
         children: [
-          ActiveRequestsTabs(),
-          _buildRequestEditor(context),
+          Expanded(
+            child: Text(
+                '${request.method.name} ${request.name.isEmpty ? request.url : request.name}',
+                style: theme.textTheme.subtitle2,
+                overflow: TextOverflow.ellipsis),
+          ),
+          IconButton(
+            splashRadius: 16,
+            color: Colors.black54,
+            icon: Icon(Icons.close),
+            onPressed: () {
+              debugPrint('Close tab button pressed.');
+            },
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+class ActiveRequestsTabs extends StatelessWidget {
+  Widget build(BuildContext context) {
+    final bloc = BlocProvider.of<ActiveRequestsListBloc>(context);
+    final theme = Theme.of(context);
+    return BlocBuilder<ActiveRequestsListBloc, ActiveRequestsListState>(
+        bloc: bloc,
+        builder: (context, state) {
+          return DynamicTabBar(
+            itemCount: state.requests.length,
+            tabBuilder: (context, idx) {
+              var request = state.requests[idx];
+              return SizedBox.fromSize(
+                size: Size(150, 40),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: Text(
+                          '${request.method.name} ${request.name.isEmpty ? request.url : request.name}',
+                          style: theme.textTheme.subtitle2,
+                          overflow: TextOverflow.ellipsis),
+                    ),
+                    IconButton(
+                      splashRadius: 16,
+                      color: Colors.black54,
+                      icon: Icon(Icons.close),
+                      onPressed: () {
+                        debugPrint('Close tab button pressed.');
+                      },
+                    ),
+                  ],
+                ),
+              );
+            },
+          );
+        });
+  }
+}
+
+class RequestEditorContainer extends StatelessWidget {
+  final _nameTextController = TextEditingController();
+  final _urlTextController = TextEditingController();
+  final _requestEditingController = TextEditingController();
+  final _requestEditingScrollController = ScrollController();
+  final _responseTextScrollController = ScrollController();
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+
+    final request = RequestWidget.of(context);
+
+    final bloc = rb.RequestBloc(request.request);
+    final activeRequestsBloc = context.bloc<ActiveRequestsListBloc>();
+
+    _nameTextController.text = request.request.name;
+    _urlTextController.text = request.request.url;
+
+    return BlocBuilder<rb.RequestBloc, RequestModel>(
+      bloc: bloc,
+      builder: (context, state) => ListView(
+        controller: _requestEditingScrollController,
+        children: [
+          TextField(
+            decoration: InputDecoration(hintText: 'Request Name'),
+            controller: _nameTextController,
+            onChanged: (val) => bloc.add(rb.NameChangedEvent(val)),
+            onSubmitted: (val) =>
+                activeRequestsBloc.add(RequestNameSubmittedEvent(state.copyWith(name: val))),
+          ),
+          StickyHeader(
+            header: buildRequestInfoBar(state, bloc, theme),
+            content: SizedBox(
+              height: 1000,
+              child: Column(
+                children: [
+                  buildRequestEditor(state, theme),
+                  buildResponseText(state),
+                ],
+              ),
+            ),
+          ),
         ],
       ),
     );
   }
 
-  Widget _buildRequestEditor(BuildContext context) {
-    var bloc = context.bloc<ActiveRequestsListBloc>();
-
-    // Initialize controller state
-    _urlTextController.text = bloc.state.activeRequest.url;
-    _nameTextController.text = bloc.state.activeRequest.name;
-
-    var theme = Theme.of(context);
-
-    return BlocConsumer<ActiveRequestsListBloc, ActiveRequestsListState>(
-      bloc: bloc,
-      // Only trigger listener when active request changes.
-      listenWhen: (oldState, newState) => oldState.activeRequest.id != newState.activeRequest.id,
-      listener: (context, state) {
-        _urlTextController.text = state.activeRequest.url;
-        _nameTextController.text = state.activeRequest.name;
-      },
-      builder: (context, state) => Expanded(
-        child: state.activeRequest == null
-            ? Text('No request selected')
-            : ListView(
-                controller: _requestEditingScrollController,
-                children: [
-                  TextField(
-                    decoration: InputDecoration(hintText: 'Request Name'),
-                    controller: _nameTextController,
-                    onChanged: (val) => bloc.add(NameChangedEvent(val)),
-                    onSubmitted: (val) => bloc.add(RequestNameSubmittedEvent(state.activeRequest)),
-                  ),
-                  StickyHeader(
-                    header: buildRequestInfoBar(state, bloc, theme),
-                    content: SizedBox(
-                      height: 1000,
-                      child: Column(
-                        children: [
-                          buildRequestEditor(state, theme),
-                          buildResponseText(state),
-                        ],
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-      ),
-    );
-  }
-
-  Widget buildRequestInfoBar(ActiveRequestsListState state, ActiveRequestsListBloc bloc, ThemeData theme) {
+  Widget buildRequestInfoBar(RequestModel state, rb.RequestBloc bloc, ThemeData theme) {
     return Container(
       color: theme.scaffoldBackgroundColor,
       child: Row(
         children: [
           DropdownButton(
-            value: state.activeRequest.method,
+            value: state.method,
             items: HttpMethod.values
                 .map((e) => DropdownMenuItem(
                       value: e,
                       child: Text(e.toString().split('.').last),
                     ))
                 .toList(),
-            onChanged: (val) => bloc.add(MethodChangedEvent(val)),
+            onChanged: (val) => bloc.add(rb.MethodChangedEvent(val)),
           ),
           Expanded(
             child: Padding(
@@ -104,20 +161,20 @@ class _RequestContainerState extends State<RequestContainer> with TickerProvider
               child: TextField(
                 decoration: InputDecoration(hintText: 'Url'),
                 controller: _urlTextController,
-                onChanged: (val) => bloc.add(UrlChangedEvent(val)),
+                onChanged: (val) => bloc.add(rb.UrlChangedEvent(val)),
               ),
             ),
           ),
           FlatButton(
             child: Text('Send Request'),
-            onPressed: () => bloc.add(InitiateRequestEvent()),
+            onPressed: () => bloc.add(rb.InitiateRequestEvent()),
           ),
         ],
       ),
     );
   }
 
-  Widget buildRequestEditor(ActiveRequestsListState state, ThemeData theme) {
+  Widget buildRequestEditor(RequestModel state, ThemeData theme) {
     return DefaultTabController(
       length: 3,
       child: Column(
@@ -154,8 +211,8 @@ class _RequestContainerState extends State<RequestContainer> with TickerProvider
             child: TabBarView(
               physics: NeverScrollableScrollPhysics(),
               children: [
-                KeyValueTable(params: state.activeRequest.params),
-                KeyValueTable(params: state.activeRequest.headers),
+                KeyValueTable(params: state.params),
+                KeyValueTable(params: state.headers),
                 CupertinoTextField(
                   controller: _requestEditingController,
                   scrollController: _requestEditingScrollController,
@@ -170,64 +227,33 @@ class _RequestContainerState extends State<RequestContainer> with TickerProvider
     );
   }
 
-  Widget buildResponseText(ActiveRequestsListState state) {
+  Widget buildResponseText(RequestModel state) {
     return Expanded(
       child: Padding(
         padding: EdgeInsets.only(top: 5),
         child: CupertinoScrollbar(
           controller: _responseTextScrollController,
-          child: Text(
-              state.activeRequest.response == '' ? 'No Response' : state.activeRequest.response),
+          child: Text(state.response == '' ? 'No Response' : state.response),
         ),
       ),
     );
   }
 }
 
-class ActiveRequestsTabs extends StatefulWidget {
-  @override
-  State<StatefulWidget> createState() {
-    return _ActiveRequestsTabsState();
-  }
-}
+class RequestWidget extends InheritedWidget {
+  final RequestModel request;
 
-class _ActiveRequestsTabsState extends State<ActiveRequestsTabs> {
-  Widget build(BuildContext context) {
-    var bloc = BlocProvider.of<ActiveRequestsListBloc>(context);
-    var theme = Theme.of(context);
-    return BlocBuilder<ActiveRequestsListBloc, ActiveRequestsListState>(
-        bloc: bloc,
-        builder: (context, state) {
-          return DynamicTabBar(
-            itemCount: state.requests.length,
-            onPositionChange: (idx) {
-              bloc.add(RequestSelectedEvent(state.requests[idx]));
-            },
-            tabBuilder: (context, idx) {
-              var request = state.requests[idx];
-              return SizedBox.fromSize(
-                size: Size(150, 40),
-                child: Row(
-                  children: [
-                    Expanded(
-                      child: Text(
-                          '${request.method.name} ${request.name.isEmpty ? request.url : request.name}',
-                          style: theme.textTheme.subtitle2,
-                          overflow: TextOverflow.ellipsis),
-                    ),
-                    IconButton(
-                      splashRadius: 16,
-                      color: Colors.black54,
-                      icon: Icon(Icons.close),
-                      onPressed: () {
-                        debugPrint('Close tab button pressed.');
-                      },
-                    ),
-                  ],
-                ),
-              );
-            },
-          );
-        });
+  const RequestWidget({
+    Key key,
+    @required this.request,
+    @required Widget child,
+  })  : assert(request != null),
+        super(key: key, child: child);
+
+  static RequestWidget of(BuildContext context) {
+    return context.dependOnInheritedWidgetOfExactType<RequestWidget>();
   }
+
+  @override
+  bool updateShouldNotify(RequestWidget old) => request.name != old.request.name;
 }
