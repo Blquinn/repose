@@ -45,6 +45,7 @@ dependencies:
   re_editor: ^0.6.0
   re_highlight: ^0.0.3
   hooked_bloc: ^1.5.0
+  multi_split_view: ^3.6.0
 
 dev_dependencies:
   flutter_test:

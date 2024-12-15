@@ -28,7 +28,7 @@ String humanizeDuration(Duration duration) {
     suffix = "µs";
   }
 
-  return _formatDouble(microSeconds / divisor, 2) + suffix;
+  return "${_formatDouble(microSeconds / divisor, 2)} $suffix";
 }
 
 double logn(double n, double b) {

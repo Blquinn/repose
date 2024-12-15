@@ -3,6 +3,7 @@ import 'package:hooked_bloc/hooked_bloc.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
+import 'package:multi_split_view/multi_split_view.dart';
 import 'package:re_editor/re_editor.dart';
 import 'package:re_highlight/languages/json.dart';
 import 'package:re_highlight/styles/atom-one-dark.dart';
@@ -23,6 +24,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       title: 'Flutter Demo',
+      debugShowCheckedModeBanner: false,
       theme: NThemeData.light(
         accentColor:
             themeColorToStockholmColor(ThemeColor.blue, Brightness.light),
@@ -99,17 +101,69 @@ class RequestResponseContainer extends HookWidget {
   Widget build(BuildContext context) {
     return BlocProvider(
       create: (context) => RequestStateCubit(),
-      child: const Padding(
-        padding: EdgeInsets.all(8.0),
+      child: Padding(
+        padding: const EdgeInsets.all(8.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            UrlBar(),
-            SizedBox(height: 8),
-            Expanded(child: ResponseView()),
+            const UrlBar(),
+            const SizedBox(height: 8),
+            Expanded(child: RequestLayoutSwitcher()),
           ],
         ),
+      ),
+    );
+  }
+}
+
+class RequestLayoutSwitcher extends HookWidget {
+  RequestLayoutSwitcher({super.key});
+
+  final MultiSplitViewController _controller = MultiSplitViewController();
+
+  @override
+  Widget build(BuildContext context) {
+    useEffect(() {
+      _controller.areas = [
+        Area(
+          min: 0.2,
+          builder: (context, area) => const RequestEditor(),
+        ),
+        Area(
+          min: 0.2,
+          builder: (context, area) => const ResponseView(),
+        ),
+      ];
+
+      return _controller.dispose;
+    }, [_controller]);
+
+    useListenable(_controller);
+
+    return MultiSplitViewTheme(
+      data: MultiSplitViewThemeData(
+        dividerHandleBuffer: 4.0,
+        dividerThickness: 1.0,
+        dividerPainter: DividerPainters.grooved1(
+          size: 25.0,
+          highlightedSize: 25.0,
+          thickness: 2,
+          highlightedThickness: 4,
+          animationDuration: const Duration(milliseconds: 100),
+          color: Theme.of(context).dividerColor,
+          highlightedColor: Theme.of(context).dividerColor,
+          backgroundColor: Theme.of(context).dividerColor.withAlpha(20),
+          highlightedBackgroundColor:
+              Theme.of(context).dividerColor.withAlpha(20),
+        ),
+      ),
+      child: MultiSplitView(
+        controller: _controller,
+        axis: Axis.horizontal,
+        // resizable: true,
+        // pushDividers: false,
+        builder: (context, area) => area.builder!.call(context, area),
       ),
     );
   }
@@ -123,7 +177,7 @@ class UrlBar extends HookWidget {
   @override
   Widget build(BuildContext context) {
     final urlController = useTextEditingController(
-        text: "https://jsonplaceholder.typicode.com/comments");
+        text: "https://jsonplaceholder.typicode.com/posts");
 
     return Row(
       children: [
@@ -168,7 +222,7 @@ class ResponseView extends HookWidget {
 
     switch (requestState) {
       case Initial():
-        return const Text("No response.");
+        return const Center(child: Text("No response."));
       case Loading():
         return const StockholmActivityIndicator();
       case Error(message: var errorMessage):
@@ -275,11 +329,8 @@ class RequestEditor extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      color: Colors.red,
-      child: const Center(
-        child: Text("Request Editor"),
-      ),
+    return const Center(
+      child: Text("Request Editor"),
     );
   }
 }
