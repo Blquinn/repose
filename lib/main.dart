@@ -97,46 +97,16 @@ class RequestResponseContainer extends HookWidget {
 
   @override
   Widget build(BuildContext context) {
-    final urlController = useTextEditingController(
-        text: "https://jsonplaceholder.typicode.com/comments");
-
     return BlocProvider(
       create: (context) => RequestStateCubit(),
-      child: Padding(
-        padding: const EdgeInsets.all(8.0),
+      child: const Padding(
+        padding: EdgeInsets.all(8.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           crossAxisAlignment: CrossAxisAlignment.center,
           children: <Widget>[
-            Row(
-              children: [
-                Expanded(
-                  child: StockholmTextField(
-                    controller: urlController,
-                    placeholder: "URL",
-                  ),
-                ),
-                const SizedBox(width: 8),
-                Builder(builder: (context) {
-                  final requestStateCubit = context.read<RequestStateCubit>();
-                  return StockholmButton(
-                    large: true,
-                    onPressed: () async {
-                      await requestStateCubit
-                          .performRequest(urlController.text);
-                    },
-                    child: const Row(
-                      children: [
-                        Text("Send"),
-                        SizedBox(width: 4),
-                        Icon(Icons.send, size: 16.0),
-                      ],
-                    ),
-                  );
-                }),
-              ],
-            ),
-            const SizedBox(height: 8),
+            UrlBar(),
+            SizedBox(height: 8),
             Expanded(child: ResponseView()),
           ],
         ),
@@ -145,99 +115,158 @@ class RequestResponseContainer extends HookWidget {
   }
 }
 
-class ResponseView extends HookWidget {
-  ResponseView({
+class UrlBar extends HookWidget {
+  const UrlBar({
     super.key,
   });
 
-  final CodeLineEditingController responseEditingController =
-      CodeLineEditingController();
+  @override
+  Widget build(BuildContext context) {
+    final urlController = useTextEditingController(
+        text: "https://jsonplaceholder.typicode.com/comments");
+
+    return Row(
+      children: [
+        Expanded(
+          child: StockholmTextField(
+            controller: urlController,
+            placeholder: "URL",
+          ),
+        ),
+        const SizedBox(width: 8),
+        Builder(builder: (context) {
+          final requestStateCubit = context.read<RequestStateCubit>();
+          return StockholmButton(
+            large: true,
+            onPressed: () async {
+              await requestStateCubit.performRequest(urlController.text);
+            },
+            child: const Row(
+              children: [
+                Text("Send"),
+                SizedBox(width: 4),
+                Icon(Icons.send, size: 16.0),
+              ],
+            ),
+          );
+        }),
+      ],
+    );
+  }
+}
+
+class ResponseView extends HookWidget {
+  const ResponseView({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
-    final requestStateCubit = context.read<RequestStateCubit>();
-    final requestState = useBlocBuilder(requestStateCubit);
+    final requestState = useBlocBuilder(context.read<RequestStateCubit>());
 
     final theme = Theme.of(context);
 
     switch (requestState) {
       case Initial():
-        responseEditingController.text = "";
         return const Text("No response.");
       case Loading():
-        responseEditingController.text = "";
         return const StockholmActivityIndicator();
       case Error(message: var errorMessage):
         var errorTextStyle = theme.textTheme.bodyMedium!
             .copyWith(color: theme.colorScheme.error);
         return Text("Error: $errorMessage", style: errorTextStyle);
       case Loaded(response: var res):
-        responseEditingController.text = res.response.body;
-        return Column(
+        return RealizedResponseView(res: res);
+    }
+  }
+}
+
+class RealizedResponseView extends HookWidget {
+  RealizedResponseView({
+    super.key,
+    required this.res,
+  });
+
+  final CodeLineEditingController responseEditingController =
+      CodeLineEditingController();
+
+  final ResponseDetail res;
+
+  @override
+  Widget build(BuildContext context) {
+    useEffect(() {
+      responseEditingController.text = res.response.body;
+      return responseEditingController.dispose;
+    });
+
+    final theme = Theme.of(context);
+
+    return Column(
+      children: [
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
           children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                Text(
-                  "Status: ${res.response.statusCode} ${res.response.reasonPhrase ?? ""}",
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                Text(
-                  "Time: ${humanizeDuration(res.timing)}",
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-                Text(
-                  "Size: ${humanizeBytes(res.response.contentLength ?? 0)}",
-                  style: Theme.of(context).textTheme.bodyLarge,
-                ),
-              ],
+            Text(
+              "Status: ${res.response.statusCode} ${res.response.reasonPhrase ?? ""}",
+              style: theme.textTheme.bodyLarge,
             ),
-            const SizedBox(height: 8.0),
-            Expanded(
-              child: CodeEditor(
-                style: CodeEditorStyle(
-                  fontFamily: "NotoSansMono",
-                  fontSize: theme.textTheme.bodyMedium!.fontSize!,
-                  codeTheme: CodeHighlightTheme(
-                    languages: {
-                      'json': CodeHighlightThemeMode(mode: langJson),
-                      // 'xml': CodeHighlightThemeMode(mode: langXml),
-                    },
-                    theme: atomOneDarkTheme,
-                  ),
-                ),
-                controller: responseEditingController,
-                // wordWrap: false,
-                wordWrap: true,
-                readOnly: true,
-                indicatorBuilder: (
-                  context,
-                  editingController,
-                  chunkController,
-                  notifier,
-                ) {
-                  return Row(
-                    children: [
-                      DefaultCodeLineNumber(
-                        controller: editingController,
-                        notifier: notifier,
-                      ),
-                      DefaultCodeChunkIndicator(
-                        width: 20,
-                        controller: chunkController,
-                        notifier: notifier,
-                      )
-                    ],
-                  );
-                },
-                // findBuilder: (context, controller, readOnly) => CodeFindPanelView(controller: controller, readOnly: readOnly),
-                // toolbarController: const ContextMenuControllerImpl(),
-                sperator: Container(width: 1, color: Colors.blue),
-              ),
+            Text(
+              "Time: ${humanizeDuration(res.timing)}",
+              style: theme.textTheme.bodyLarge,
+            ),
+            Text(
+              "Size: ${humanizeBytes(res.response.contentLength ?? 0)}",
+              style: theme.textTheme.bodyLarge,
             ),
           ],
-        );
-    }
+        ),
+        const SizedBox(height: 8.0),
+        Expanded(
+          child: CodeEditor(
+            style: CodeEditorStyle(
+              fontFamily: "NotoSansMono",
+              fontSize: Theme.of(context).textTheme.bodyMedium!.fontSize!,
+              codeTheme: CodeHighlightTheme(
+                languages: {
+                  'json': CodeHighlightThemeMode(mode: langJson),
+                  // 'xml': CodeHighlightThemeMode(mode: langXml),
+                },
+                theme: atomOneDarkTheme,
+              ),
+            ),
+            controller: responseEditingController,
+            wordWrap: true,
+            readOnly: true,
+            indicatorBuilder: (
+              context,
+              editingController,
+              chunkController,
+              notifier,
+            ) {
+              return Row(
+                children: [
+                  DefaultCodeLineNumber(
+                    controller: editingController,
+                    notifier: notifier,
+                  ),
+                  DefaultCodeChunkIndicator(
+                    width: 20,
+                    controller: chunkController,
+                    notifier: notifier,
+                  )
+                ],
+              );
+            },
+            // findBuilder: (context, controller, readOnly) => CodeFindPanelView(controller: controller, readOnly: readOnly),
+            // toolbarController: const ContextMenuControllerImpl(),
+            sperator: Container(
+              width: theme.dividerTheme.thickness ?? 1.0,
+              color: theme.dividerColor,
+            ),
+          ),
+        ),
+      ],
+    );
   }
 }
 
