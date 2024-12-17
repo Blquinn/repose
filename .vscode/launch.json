@@ -7,19 +7,28 @@
         {
             "name": "repose",
             "request": "launch",
-            "type": "dart"
+            "type": "dart",
+            "env": {
+                "GDK_BACKEND": "wayland"
+            }
         },
         {
             "name": "repose (profile mode)",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "profile"
+            "flutterMode": "profile",
+            "env": {
+                "GDK_BACKEND": "wayland"
+            }
         },
         {
             "name": "repose (release mode)",
             "request": "launch",
             "type": "dart",
-            "flutterMode": "release"
+            "flutterMode": "release",
+            "env": {
+                "GDK_BACKEND": "wayland"
+            }
         }
     ]
 }

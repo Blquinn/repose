@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:repose/models.dart';
 import 'package:http/http.dart' as http;
@@ -22,5 +23,18 @@ class RequestStateCubit extends Cubit<RequestState> {
     } catch (e) {
       emit(Error(e.toString()));
     }
+  }
+}
+
+class AppLayoutCubit extends Cubit<AppLayout> {
+  AppLayoutCubit()
+      : super(const AppLayout(requestResponseViewAxis: Axis.horizontal));
+
+  void toggleLayout() {
+    final newAxis = state.requestResponseViewAxis == Axis.vertical
+        ? Axis.horizontal
+        : Axis.vertical;
+
+    emit(state.copyWith(requestResponseViewAxis: newAxis));
   }
 }

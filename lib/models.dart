@@ -1,3 +1,4 @@
+import 'package:flutter/widgets.dart';
 import 'package:freezed_annotation/freezed_annotation.dart';
 import 'package:http/http.dart' as http;
 
@@ -27,4 +28,11 @@ class ResponseDetail with _$ResponseDetail {
     required http.Response response,
     required Duration timing,
   }) = _ResponseDetail;
+}
+
+@freezed
+class AppLayout with _$AppLayout {
+  const factory AppLayout({
+    required Axis requestResponseViewAxis,
+  }) = _AppLayout;
 }

@@ -56,12 +56,15 @@ class HomePage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return const Scaffold(
-      appBar: PreferredSize(
-        preferredSize: Size.fromHeight(50.0),
-        child: Toolbar(),
+    return BlocProvider(
+      create: (context) => AppLayoutCubit(),
+      child: const Scaffold(
+        appBar: PreferredSize(
+          preferredSize: Size.fromHeight(50.0),
+          child: Toolbar(),
+        ),
+        body: RequestResponseContainer(),
       ),
-      body: RequestResponseContainer(),
     );
   }
 }
@@ -85,9 +88,49 @@ class Toolbar extends StatelessWidget {
           onPressed: () {},
         ),
         const Spacer(),
-        StockholmToolbarButton(
-          icon: Icons.close,
-          onPressed: () {},
+        Builder(
+          builder: (context) {
+            return StockholmToolbarButton(
+              icon: Icons.menu,
+              onPressed: () {
+                var bounds = getGlobalBoundsForContext(context);
+
+                var viewAxis = context
+                    .read<AppLayoutCubit>()
+                    .state
+                    .requestResponseViewAxis;
+
+                showStockholmMenu(
+                  context: context,
+                  preferredAnchorPoint: Offset(bounds.left, bounds.bottom + 4),
+                  menu: StockholmMenu(
+                    items: [
+                      StockholmMenuItem(
+                        onSelected: () {
+                          final bloc = context.read<AppLayoutCubit>();
+                          bloc.toggleLayout();
+                        },
+                        // child: const Text('Toggle view layout'),
+                        child: Row(
+                          spacing: 4.0,
+                          children: [
+                            const Text('Toggle view layout'),
+                            RotatedBox(
+                              quarterTurns: viewAxis == Axis.vertical ? 1 : 0,
+                              child: const Icon(
+                                Icons.splitscreen,
+                                size: 14.0,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                  ),
+                );
+              },
+            );
+          },
         ),
       ],
     );
@@ -158,12 +201,14 @@ class RequestLayoutSwitcher extends HookWidget {
               Theme.of(context).dividerColor.withAlpha(20),
         ),
       ),
-      child: MultiSplitView(
-        controller: _controller,
-        axis: Axis.horizontal,
-        // resizable: true,
-        // pushDividers: false,
-        builder: (context, area) => area.builder!.call(context, area),
+      child: BlocBuilder<AppLayoutCubit, AppLayout>(
+        builder: (context, layout) => MultiSplitView(
+          controller: _controller,
+          axis: layout.requestResponseViewAxis,
+          // resizable: true,
+          // pushDividers: false,
+          builder: (context, area) => area.builder!.call(context, area),
+        ),
       ),
     );
   }
